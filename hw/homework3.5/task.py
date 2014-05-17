@@ -95,8 +95,9 @@ class robot:
     def sense(self): #do not change the name of this function
         Z = []
 
-        # ENTER CODE HERE
-        # HINT: You will probably need to use the function atan2()
+        # ENTER CODE HERE # HINT: You will probably need to use the function atan2()
+        Z = [atan2(p[0] - self.y, p[1] - self.x) - self.orientation for p in landmarks]
+        
 
         return Z #Leave this line here. Return vector Z of 4 bearings.
     
