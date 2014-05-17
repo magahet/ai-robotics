@@ -98,6 +98,27 @@ class robot:
     def move(self, motion):  # Do not change the name of this function
 
         # ENTER YOUR CODE HERE
+        alpha, d = motion
+        theta = self.orientation
+        
+        beta = (d / self.length) * tan(alpha)
+        
+        if abs(beta) >= 0.001:
+            R = d / beta
+            cx = self.x - sin(theta) * R
+            cy = self.y + cos(theta) * R
+            x = cx + sin(theta + beta) * R
+            y = cy - cos(theta + beta) * R
+        else:
+            x = self.x + d * cos(theta)
+            y = self.y + d * sin(theta)
+            
+        theta_new = (theta + beta)
+        theta_new %= 2 * pi
+            
+        
+        result = robot(self.length)
+        result.set(x, y, theta_new)
 
         return result  # make sure your move function returns an instance
                       # of the robot class with the correct coordinates.
