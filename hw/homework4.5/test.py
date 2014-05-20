@@ -32,7 +32,7 @@ class TestMotion(unittest.TestCase):
                      [0, 0, 0]]
         task.goal = [0, len(task.grid[0])-1] # Goal is in top right corner
         task.success_prob = 0.5
-        task.failure_prob = (1.0 - task.success_prob)/2.0 
+        task.failure_prob = (1.0 - task.success_prob)/2.0
         value, policy = task.stochastic_value()
         self.compare_values(exp_value, value)
         self.compare_policies(exp_policy, policy)
@@ -46,7 +46,7 @@ class TestMotion(unittest.TestCase):
                      [0, 0, 0]]
         task.goal = [0, len(task.grid[0])-1] # Goal is in top right corner
         task.success_prob = 0.5
-        task.failure_prob = (1.0 - task.success_prob)/2.0 
+        task.failure_prob = (1.0 - task.success_prob)/2.0
         value, policy = task.stochastic_value()
         self.compare_values(exp_value, value)
         self.compare_policies(exp_policy, policy)
@@ -66,7 +66,7 @@ class TestMotion(unittest.TestCase):
                      [0, 1, 1, 0]]
         task.goal = [0, len(task.grid[0])-1] # Goal is in top right corner
         task.success_prob = 0.5
-        task.failure_prob = (1.0 - task.success_prob)/2.0 
+        task.failure_prob = (1.0 - task.success_prob)/2.0
         value, policy = task.stochastic_value()
         self.compare_values(exp_value, value)
         self.compare_policies(exp_policy, policy)
@@ -86,11 +86,11 @@ class TestMotion(unittest.TestCase):
                      [0, 1, 1, 0]]
         task.goal = [0, len(task.grid[0])-1] # Goal is in top right corner
         task.success_prob = 1.0
-        task.failure_prob = (1.0 - task.success_prob)/2.0 
+        task.failure_prob = (1.0 - task.success_prob)/2.0
         value, policy = task.stochastic_value()
         self.compare_values(exp_value, value)
         self.compare_policies(exp_policy, policy)
-        
+
 if __name__ == "__main__":
     unittest.main()
 
