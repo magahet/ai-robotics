@@ -139,13 +139,27 @@ class robot:
 ############## ONLY ADD / MODIFY CODE BELOW THIS LINE ####################
    
     def cte(self, radius):
+        
+        def dist(p1, p2):
+            return hypot(p1[0] - p2[0], p1[1] - p2[1])
         # 
         #
         # Add code here
         #
         #            
+        x = self.x
+        y = self.y
+        
+        if x <= radius:
+            return dist((x, y), (radius, radius)) - radius
+        elif x > radius and x < 3 * radius:
+            if y <= radius:
+                return - y
+            else:
+                return y - 2* radius
+        else:
+            return dist((x, y), (3 * radius, radius)) - radius
 
-        return cte
     
 ############## ONLY ADD / MODIFY CODE ABOVE THIS LINE ####################
 

@@ -68,11 +68,24 @@ def smooth(path, weight_data = 0.1, weight_smooth = 0.1, tolerance = 0.00001):
         for j in range(len(path[0])):
             newpath[i][j] = path[i][j]
 
+    delta = tolerance
+    while delta >= tolerance:
+        delta = 0.0
+        for i in range(len(newpath)):
+            for j in range(len(newpath[0])):
+                last = newpath[i][j]
+                newpath[i][j] += weight_data * (path[i][j] - newpath[i][j]) \
+                    + weight_smooth * (newpath[(i-1) % len(path)][j] + newpath[(i+1) % len(path)][j] \
+                    - (2.0 * newpath[i][j]))
+                delta += abs(newpath[i][j] - last)
+    return newpath
+ 
+                
 
 # thank you - EnTerr - for posting this on our discussion forum
 
-#newpath = smooth(path)
-#for i in range(len(path)):
-#    print '['+ ', '.join('%.3f'%x for x in path[i]) +'] -> ['+ ', '.join('%.3f'%x for x in newpath[i]) +']'
+newpath = smooth(path)
+for i in range(len(path)):
+    print '['+ ', '.join('%.3f'%x for x in path[i]) +'] -> ['+ ', '.join('%.3f'%x for x in newpath[i]) +']'
 
 

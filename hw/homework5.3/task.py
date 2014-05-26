@@ -61,6 +61,31 @@ def smooth(path, fix, weight_data = 0.0, weight_smooth = 0.1, tolerance = 0.0000
     # The weight for each of the two new equations should be 0.5 * weight_smooth
     #
 
+    newpath = [r[:] for r in path]
+    g = 0.5 * weight_smooth
+
+    delta = tolerance
+    while delta >= tolerance:
+        delta = 0.0
+        for i in range(len(newpath)):
+            if fix[i] == 1:
+                continue
+            for j in range(len(newpath[0])):
+                last = newpath[i][j]
+                newpath[i][j] += weight_data * (path[i][j] - newpath[i][j]) \
+                    + weight_smooth * (newpath[(i-1) % len(path)][j] + newpath[(i+1) % len(path)][j] \
+                    - (2.0 * newpath[i][j]))
+                    
+                newpath[i][j] += g * (2 * newpath[(i-1) % len(path)][j] \
+                    - newpath[(i-2) % len(path)][j] \
+                    - newpath[i][j])
+                
+                newpath[i][j] += g * (2 * newpath[(i+1) % len(path)][j] \
+                    - newpath[(i+2) % len(path)][j] \
+                    - newpath[i][j])
+                
+                delta += abs(newpath[i][j] - last)
+    return newpath
 
 
 #thank you - EnTerr - for posting this on our discussion forum
