@@ -73,75 +73,41 @@ cost_step = 1
 # 2) ...NOT take any arguments.
 # 3) ...return two grids: FIRST value and THEN policy.
 
+
 def stochastic_value():
-    value = [[1000.0 for row in range(len(grid[0]))] for col in range(
-        len(grid))]
+    value = [[1000.0 for row in range(len(grid[0]))] for col in range(len(grid))]
+    policy = [[' ' for row in range(len(grid[0]))] for col in range(len(grid))]
 
-    new_value, new_policy = update_value(value)
-    while new_value != value:
-        value = new_value
-        new_value, new_policy = update_value(value)
-
-    return new_value, new_policy
-
-
-def get_policy(value):
-    policy = [[' ' for row in range(len(value[0]))] for col in range(len(value))]
-    for x, row in enumerate(value):
-        for y, v in enumerate(row):
-            if v == 1000:
-                continue
-            if v == 0:
-                policy[x][y] = '*'
-                continue
-            for i, d in enumerate(delta):
-                x2, y2 = x + d[0], y + d[1]
-                if x2 in range(len(value)) and y2 in range(len(value[0])):
-                    if value[x2][y2] < v:
-                        policy[x][y] = delta_name[i]
-    return policy
-
-
-def update_value(old_value):
-    value = [[row[:] for row in old_value]]
-    policy = [[' ' for row in range(len(value[0]))] for col in range(len(value))]
-    for x, row in enumerate(value):
-        for y, v in enumerate(row):
-            if [x, y] == goal:
-                value[x][y] = 0
-                continue
-            elif grid[x][y] == 1:
-                value[x][y] = 1000
-                continue
-            for a, v in enumerate(delta):
-                v = cost_step
-                for i in range(-1, 2):
-                    action = (a + i) % len(delta)
-                    x2, y2 = x + delta[action][0], y + delta[action][1]
-                    prob = success_prob if i == 0 else failure_prob
-                    if x2 in range(len(grid)) and y2 in range(len(grid[0])) and grid[x2][y2] == 0:
-                        try:
+    past_value = None
+    while not past_value or value != past_value:
+        past_value = [r[:] for r in value]
+        for x, row in enumerate(grid):
+            for y, v in enumerate(row):
+                if [x, y] == goal:
+                    value[x][y] = 0
+                    policy[x][y] = '*'
+                    continue
+                elif grid[x][y] == 1:
+                    value[x][y] = 1000
+                    continue
+                for a, v in enumerate(delta):
+                    v = cost_step
+                    for i in range(-1, 2):
+                        action = (a + i) % len(delta)
+                        x2, y2 = x + delta[action][0], y + delta[action][1]
+                        prob = success_prob if i == 0 else failure_prob
+                        if x2 in range(len(grid)) and y2 in range(len(grid[0])) and grid[x2][y2] == 0:
                             v += prob * value[x2][y2]
-                        except:
-                            print prob, value[x2][y2]
-                    else:
-                        v += prob * collision_cost
-                    #if (x, y) == (0, 2):
-                        #print attempted_move, d, prob, v
-                if v < value[x][y]:
-                    value[x][y] = v
-                    policy[x][y] = delta_name[action]
-            #if (x, y) == (0, 2):
-                #print x, y, action_values
-    #for row in new_value:
-        #print row
-    #print '-' * 80
+                        else:
+                            v += prob * collision_cost
+                    if v < value[x][y]:
+                        value[x][y] = v
+                        policy[x][y] = delta_name[a]
+    for r in value:
+        print r
+    for r in policy:
+        print r
     return value, policy
 
-value, policy = stochastic_value()
 
-#for row in value:
-    #print row
-
-#for row in policy:
-    #print row
+#value, policy = stochastic_value()
