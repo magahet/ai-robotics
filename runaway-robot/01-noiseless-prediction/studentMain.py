@@ -61,73 +61,40 @@ from matrix import *
 import random
 
 
-def filter(m, x, P):
-    u = matrix([[0.], [0.], [0.], [0.]])  # external motion
-    F = matrix([
-        [1, 0, 0.5, 0],
-        [0, 1, 0, 0.5],
-        [0, 0, 1, 0],
-        [0, 0, 0, 1]])
-    H = matrix([
-        [1, 0, 0, 0],
-        [0, 1, 0, 0]])
-    R = matrix([
-        [0.1, 0],
-        [0, 0.1]])
-    I = matrix([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
-
-    # measurement update
-    Z = matrix([m])
-    y = Z.transpose() - (H * x)
-    S = H * P * H.transpose() + R
-    K = P * H.transpose() * S.inverse()
-    x = x + (K * y)
-    P = (I - (K * H)) * P
-
-    # prediction
-    x = (F * x) + u
-    P = F * P * F.transpose()
-
-    return x, P
-
-
 # This is the function you have to write. The argument 'measurement' is a
 # single (x, y) point. This function will have to be called multiple
 # times before you have enough information to accurately predict the
 # next position. The OTHER variable that your function returns will be
 # passed back to your function the next time it is called. You can use
 # this to keep track of important information over time.
-def estimate_next_pos(measurement, OTHER=None):
+def estimate_next_pos(measurement, OTHER = None):
     """Estimate the next (x, y) position of the wandering Traxbot
     based on noisy (x, y) measurements."""
 
-    mx, my = measurement
-    if OTHER is None:
-        OTHER = {
-            'x': matrix([[mx], [my], [0.], [0.]]),  # initial state (location and velocity)
-            'P': matrix([
-                [0, 0, 0, 0],
-                [0, 0, 0, 0],
-                [0, 0, 1000, 0],
-                [0, 0, 0, 1000]])
-        }
-        xy_estimate = (mx, my)
-    else:
-        x = OTHER['x']
-        P = OTHER['P']
-        x, P = filter(measurement, x, P)
-        OTHER = {'x': x, 'P': P}
-        xy_estimate = (x.value[0][0], x.value[1][0])
-        print 'x:', x
-
     # You must return xy_estimate (x, y), and OTHER (even if it is None)
     # in this order for grading purposes.
-    print measurement, xy_estimate
+    if not OTHER:
+        OTHER = [measurement]
+    elif len(OTHER) == 1:
+        OTHER.append(measurement)
+    elif len(OTHER) == 2:
+        o = distance_between(OTHER[0], measurement) / 2.0
+        h = distance_between(OTHER[1], measurement)
+        a = pi - 2 * asin(o / h)
+        x, y = measurement
+        x0, y0 = OTHER[-1]
+        b = atan2((y - y0), (x - x0))
+        r = robot(x, y, b, a, h)
+        print 'guess0:', r.x, r.y, r.heading, r.turning, r.distance
+        r.move_in_circle()
+        print 'guess:', r.x, r.y, r.heading, r.turning, r.distance
+        OTHER.pop(0)
+        OTHER.append(measurement)
+        return (r.x, r.y), OTHER
+    xy_estimate = measurement
     return xy_estimate, OTHER
 
 # A helper function you may find useful.
-
-
 def distance_between(point1, point2):
     """Computes distance between point1 and point2. Points are (x, y) pairs."""
     x1, y1 = point1
@@ -137,9 +104,7 @@ def distance_between(point1, point2):
 # This is here to give you a sense for how we will be running and grading
 # your code. Note that the OTHER variable allows you to store any
 # information that you want.
-
-
-def demo_grading(estimate_next_pos_fcn, target_bot, OTHER=None):
+def demo_grading(estimate_next_pos_fcn, target_bot, OTHER = None):
     localized = False
     distance_tolerance = 0.01 * target_bot.distance
     ctr = 0
@@ -161,23 +126,19 @@ def demo_grading(estimate_next_pos_fcn, target_bot, OTHER=None):
     return localized
 
 # This is a demo for what a strategy could look like. This one isn't very good.
-
-
-def naive_next_pos(measurement, OTHER=None):
+def naive_next_pos(measurement, OTHER = None):
     """This strategy records the first reported position of the target and
     assumes that eventually the target bot will eventually return to that
     position, so it always guesses that the first position will be the next."""
-    if not OTHER:  # this is the first measurement
+    if not OTHER: # this is the first measurement
         OTHER = measurement
     xy_estimate = OTHER
     return xy_estimate, OTHER
 
 # This is how we create a target bot. Check the robot.py file to understand
 # How the robot class behaves.
-test_target = robot(2.1, 4.3, 0.5, 2 * pi / 34.0, 1.5)
+test_target = robot(2.1, 4.3, 0.5, 2*pi / 34.0, 1.5)
 test_target.set_noise(0.0, 0.0, 0.0)
 
-#demo_grading(naive_next_pos, test_target)
 demo_grading(estimate_next_pos, test_target)
 
-# pymode:lint_ignore=W404,W402
