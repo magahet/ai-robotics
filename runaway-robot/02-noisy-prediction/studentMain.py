@@ -42,59 +42,67 @@ import random
 def estimate_next_pos(measurement, OTHER=None):
     """Estimate the next (x, y) position of the wandering Traxbot
     based on noisy (x, y) measurements."""
-    #print measurement, OTHER
 
     def update(mean1, var1, mean2, var2):
+        '''Calculate the posterior belief of a Gaussian random variable'''
         new_mean = (1.0 / (var1 + var2)) * (var2 * mean1 + var1 * mean2)
         new_var = 1.0 / ((1.0 / var1) + (1.0 / var2))
         return [new_mean, new_var]
 
-    # You must return xy_estimate (x, y), and OTHER (even if it is None)
-    # in this order for grading purposes.
+    def bearing(p1, p2):
+        '''Calculate bearing based on two points'''
+        a = atan2(p2[1] - p1[1], p2[0] - p1[0])
+        a += 2 * pi if a < 0.0 else 0.0
+        return a
 
     OTHER = {} if not OTHER else OTHER
     measurements = OTHER.get('measurements', [])
 
+    # not enough data to make an estimate
     if len(measurements) < 2:
         measurements.append(measurement)
         return measurement, {'measurements': measurements}
 
+    # use the magic of trig to get distance and turning estimates
     m0, m1 = measurements
-    o = distance_between(m0, measurement) / 2.0
     distance_est = distance_between(m1, measurement)
-    r = o / distance_est if o < distance_est else distance_est / o
-    turning_est = pi - 2 * asin(r)
-    x, y = measurement
-    x0, y0 = m1
-    bearing_est = atan2((y - y0), (x - x0))
+    heading_est0 = bearing(m0, m1)
+    heading_est1 = bearing(m1, measurement)
+    turning_est = heading_est1 - heading_est0
 
+    # handle edge case of crossing from quadrant 4 to 1
+    if heading_est0 > 3 * (pi / 2) and heading_est1 < pi / 2:
+        turning_est += (2 * pi)
+
+    x, y = measurement
+
+    # use the magic of bayes to update posterior belief of distance and turning
     distance, distance_var = update(
-        OTHER.get('distance', 0.0),
-        OTHER.get('distance_var', 10000.0),
+        OTHER.get('distance', distance_est),
+        OTHER.get('distance_var', 10.0),
         distance_est,
         measurement_noise)
 
     turning, turning_var = update(
-        OTHER.get('turning', 0.0),
-        OTHER.get('turning_var', 10000.0),
+        OTHER.get('turning', turning_est),
+        OTHER.get('turning_var', 10.0),
         turning_est,
         measurement_noise)
 
-    r = robot(x, y, bearing_est, turning, distance)
-    #print 'guess0:', r.x, r.y, r.heading, r.turning, r.distance
+    # setup a model robot and move it to make our prediction
+    r = robot(x, y, heading_est1, turning, distance)
     r.move_in_circle()
-    #print 'guess:', r.x, r.y, r.heading, r.turning, r.distance
 
-    #print turning, turning_var, distance, distance_var
-
+    # save current model attributes into OTHER
     OTHER = {
         'measurements': [m1, measurement],
         'distance': distance,
         'distance_var': distance_var,
         'turning': turning,
-        'turning_var': turning_var,
+        'turning_var': turning_var
     }
 
+    # return our predicted robot position
     return (r.x, r.y), OTHER
 
 # A helper function you may find useful.
@@ -118,6 +126,68 @@ def demo_grading(estimate_next_pos_fcn, target_bot, OTHER=None):
     # if you haven't localized the target bot, make a guess about the next
     # position, then we move the bot and compare your guess to the true
     # next position. When you are close enough, we stop checking.
+    #For Visualization
+    import turtle  # You need to run this locally to use the turtle module
+    window = turtle.Screen()
+    window.bgcolor('white')
+    size_multiplier = 25.0  # change Size of animation
+    broken_robot = turtle.Turtle()
+    broken_robot.shape('turtle')
+    broken_robot.color('green')
+    broken_robot.resizemode('user')
+    broken_robot.shapesize(0.1, 0.1, 0.1)
+    measured_broken_robot = turtle.Turtle()
+    measured_broken_robot.shape('circle')
+    measured_broken_robot.color('red')
+    measured_broken_robot.resizemode('user')
+    measured_broken_robot.shapesize(0.1, 0.1, 0.1)
+    prediction = turtle.Turtle()
+    prediction.shape('arrow')
+    prediction.color('blue')
+    prediction.resizemode('user')
+    prediction.shapesize(0.1, 0.1, 0.1)
+    prediction.penup()
+    broken_robot.penup()
+    measured_broken_robot.penup()
+    #End of Visualization
+    while not localized and ctr <= 1000:
+        ctr += 1
+        measurement = target_bot.sense()
+        position_guess, OTHER = estimate_next_pos_fcn(measurement, OTHER)
+        target_bot.move_in_circle()
+        true_position = (target_bot.x, target_bot.y)
+        error = distance_between(position_guess, true_position)
+        #print target_bot.turning, OTHER.get('turning', 0)
+        if error <= distance_tolerance:
+            print "You got it right! It took you ", ctr, " steps to localize."
+            localized = True
+        if ctr == 1000:
+            print "Sorry, it took you too many steps to localize the target."
+        #More Visualization
+        measured_broken_robot.setheading(target_bot.heading * 180 / pi)
+        measured_broken_robot.goto(measurement[0] * size_multiplier,
+                                   measurement[1] * size_multiplier - 200)
+        measured_broken_robot.stamp()
+        broken_robot.setheading(target_bot.heading * 180 / pi)
+        broken_robot.goto(target_bot.x * size_multiplier,
+                          target_bot.y * size_multiplier - 200)
+        broken_robot.stamp()
+        prediction.setheading(target_bot.heading * 180 / pi)
+        prediction.goto(position_guess[0] * size_multiplier,
+                        position_guess[1] * size_multiplier - 200)
+        prediction.stamp()
+        #End of Visualization
+    return localized
+
+
+'''
+def demo_grading(estimate_next_pos_fcn, target_bot, OTHER=None):
+    localized = False
+    distance_tolerance = 0.01 * target_bot.distance
+    ctr = 0
+    # if you haven't localized the target bot, make a guess about the next
+    # position, then we move the bot and compare your guess to the true
+    # next position. When you are close enough, we stop checking.
     while not localized and ctr <= 5000:
         ctr += 1
         measurement = target_bot.sense()
@@ -125,6 +195,7 @@ def demo_grading(estimate_next_pos_fcn, target_bot, OTHER=None):
         target_bot.move_in_circle()
         true_position = (target_bot.x, target_bot.y)
         error = distance_between(position_guess, true_position)
+        #print 'true:', target_bot.heading
         print true_position, position_guess, error - distance_tolerance
         if error <= distance_tolerance:
             print "You got it right! It took you ", ctr, " steps to localize."
@@ -132,6 +203,7 @@ def demo_grading(estimate_next_pos_fcn, target_bot, OTHER=None):
         if ctr == 5000:
             print "Sorry, it took you too many steps to localize the target."
     return localized
+'''
 
 # This is a demo for what a strategy could look like. This one isn't very good.
 
