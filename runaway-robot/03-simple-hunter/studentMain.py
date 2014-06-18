@@ -45,8 +45,89 @@ def next_move(hunter_position, hunter_heading, target_measurement, max_distance,
     # The OTHER variable is a place for you to store any historical information about
     # the progress of the hunt (or maybe some localization information). Your return format
     # must be as follows in order to be graded properly.
+
+    OTHER = {} if not OTHER else OTHER
+
+    # use the estimate_next_pos function to build the target robot model
+    target_position, model_data = estimate_next_pos(target_measurement, OTHER.get('model'))
+
+    # determine turning and distance required to navigate to the predicted
+    # target position
+    turning = get_heading(hunter_position, target_position) - hunter_heading
+    distance = min(max_distance, distance_between(hunter_position, target_position))
+
+    # store model data
+    OTHER = {'model': model_data}
+
     #return turning, distance, OTHER
-    return 0, 0, None
+    return turning, distance, OTHER
+
+
+def estimate_next_pos(measurement, OTHER=None, measurement_noise=0.00001):
+    """Estimate the next (x, y) position of the wandering Traxbot
+    based on noisy (x, y) measurements."""
+
+    def update(mean1, var1, mean2, var2):
+        '''Calculate the posterior belief of a Gaussian random variable'''
+        new_mean = (1.0 / (var1 + var2)) * (var2 * mean1 + var1 * mean2)
+        new_var = 1.0 / ((1.0 / var1) + (1.0 / var2))
+        return [new_mean, new_var]
+
+    def bearing(p1, p2):
+        '''Calculate bearing based on two points'''
+        a = atan2(p2[1] - p1[1], p2[0] - p1[0])
+        a += 2 * pi if a < 0.0 else 0.0
+        return a
+
+    OTHER = {} if not OTHER else OTHER
+    measurements = OTHER.get('measurements', [])
+
+    # not enough data to make an estimate
+    if len(measurements) < 2:
+        measurements.append(measurement)
+        return measurement, {'measurements': measurements}
+
+    # use the magic of trig to get distance and turning estimates
+    m0, m1 = measurements
+    distance_est = distance_between(m1, measurement)
+    heading_est0 = bearing(m0, m1)
+    heading_est1 = bearing(m1, measurement)
+    turning_est = heading_est1 - heading_est0
+
+    # handle edge case of crossing from quadrant 4 to 1
+    if heading_est0 > 3 * (pi / 2) and heading_est1 < pi / 2:
+        turning_est += (2 * pi)
+
+    x, y = measurement
+
+    # use the magic of bayes to update posterior belief of distance and turning
+    distance, distance_var = update(
+        OTHER.get('distance', distance_est),
+        OTHER.get('distance_var', 10.0),
+        distance_est,
+        measurement_noise)
+
+    turning, turning_var = update(
+        OTHER.get('turning', turning_est),
+        OTHER.get('turning_var', 10.0),
+        turning_est,
+        measurement_noise)
+
+    # setup a model robot and move it to make our prediction
+    r = robot(x, y, heading_est1, turning, distance)
+    r.move_in_circle()
+
+    # save current model attributes into OTHER
+    OTHER = {
+        'measurements': [m1, measurement],
+        'distance': distance,
+        'distance_var': distance_var,
+        'turning': turning,
+        'turning_var': turning_var
+    }
+
+    # return our predicted robot position
+    return (r.x, r.y), OTHER
 
 
 def distance_between(point1, point2):
@@ -231,6 +312,6 @@ target.set_noise(0.0, 0.0, measurement_noise)
 
 hunter = robot(-10.0, -10.0, 0.0)
 
-print demo_grading(hunter, target, naive_next_move)
+print demo_grading(hunter, target, next_move)
 
 # pymode:lint_ignore=W404,W402
