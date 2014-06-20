@@ -2,7 +2,6 @@
 
 
 import turtle
-import time
 
 
 def smooth(path, weight_data=0.2, weight_smooth=0.5, tolerance=0.000001):
@@ -25,6 +24,13 @@ def smooth(path, weight_data=0.2, weight_smooth=0.5, tolerance=0.000001):
                                    (2.0 * newpath[i % len(path)][j]))
             delta += abs(newpath[i % len(path)][j] - last)
     return newpath
+
+
+#class PredictionModel(object):
+    #'''Model of predicted robot'''
+
+    #def __init__(self, num_particles=50, environment_constraints=None):
+        #self.bot = robot(x, y)
 
 
 def visualize(centroid_data):
@@ -56,17 +62,41 @@ def visualize(centroid_data):
         #chaser_robot.setheading(hunter_bot.heading * 180 / pi)
         chaser_robot.goto(x * size_multiplier, y * size_multiplier)
 
-    while True:
-        time.sleep(1)
+    turtle.done()
+
+
+class BoundingBox(object):
+    '''Defines constrains of the box'''
+
+    def __init__(self, data):
+        self.max_x = max([d[0] for d in data])
+        self.min_x = min([d[0] for d in data])
+        self.max_y = max([d[1] for d in data])
+        self.min_y = min([d[1] for d in data])
+
+    def __contains__(self, point):
+        return all([
+            point[0] >= self.min_x,
+            point[0] <= self.max_x,
+            point[1] >= self.min_y,
+            point[1] <= self.max_y
+        ])
+
+    def __repr__(self):
+        return ((self.min_x, self.max_x), (self.min_y, self.max_y))
+
+    def __str__(self):
+        return str(self.__repr__())
 
 
 with open('centroid_data-20') as _file:
     centroid_data = [[int(t) for t in l.split(',')] for l in _file.readlines()]
 
-max_x = max([d[0] for d in centroid_data])
-min_x = min([d[0] for d in centroid_data])
-max_y = max([d[1] for d in centroid_data])
-min_y = min([d[1] for d in centroid_data])
-print min_x, max_x, min_y, max_y, len(centroid_data)
+bb = BoundingBox(centroid_data)
+print bb
+print (100, 100) in bb
+print (2000, 100) not in bb
 
-visualize(smooth(centroid_data))
+#print min_x, max_x, min_y, max_y, len(centroid_data)
+
+#visualize(smooth(centroid_data))
