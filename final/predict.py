@@ -8,38 +8,43 @@ import random
 from scipy.spatial.distance import euclidean
 from utils import *
 import argparse
+from kalman import KalmanFilterModel2D
 
 
-MEASUREMENT_NOISE = 1
+MEASUREMENT_NOISE = pi / 2
 
 
 def visualize(centroid_data, max_x=800, max_y=600, forcast=0):
     '''Draw hexbug path along with the predicted path'''
-    turtle.setup(max_x, max_y)
-    turtle.setworldcoordinates(0, max_y, max_x, 0)
+    #turtle.setup(max_x, max_y)
+    #turtle.setworldcoordinates(0, max_y, max_x, 0)
+    bb = BoundingBox(centroid_data)
+    turtle.setworldcoordinates(bb.min_x, bb.max_y, bb.max_x, bb.min_y)
     window = turtle.Screen()
     window.bgcolor('white')
 
-    OTHER = None
-    normalized_data = Normalizer(centroid_data, max_x, max_y)
+    #OTHER = None
+    #normalized_data = Normalizer(centroid_data, max_x, max_y)
     started = False
-    for x, y in normalized_data.data:
+    model = KalmanFilterModel2D(measurement_noise=0.001)
+    #for x, y in normalized_data.data:
+    for x, y in centroid_data[-100:]:
+        model.predict()
         if not started:
             target_robot = setup_turtle('blue', (x, y), 'slowest')
-            prediction_robot = setup_turtle('red', (x, y), 'slowest')
+            prediction_robot = setup_turtle('red', (x, y), 'fast')
             started = True
 
-        if (x, y) == (-1, -1):
-            continue
-        #print (x, y)
-        target_robot.goto(x, y)
-        (x1, y1), OTHER = estimate_next_pos((x, y), OTHER)
+        if (x, y) != (-1, -1):
+            model.update((x, y))
+            target_robot.goto(x, y)
+        mx, my, _, _ = model.state
+        prediction_robot.goto(mx, my)
+        print model.state
+    for i in range(forcast):
+        x, y, _, _ = model.predict()
         prediction_robot.goto(x, y)
-        prediction_robot.pendown()
-        for i in range(forcast):
-            (x1, y1), OTHER = estimate_next_pos((x1, y1), OTHER)
-            prediction_robot.goto(x1, y1)
-        prediction_robot.penup()
+        print model.state
 
     turtle.done()
 
@@ -64,35 +69,42 @@ def estimate_next_pos(measurement, OTHER=None):
 
     # not enough data to make an estimate
     if len(measurements) < 2:
-        measurements.append(measurement)
+        if measurement != (-1, -1):
+            measurements.append(measurement)
         return measurement, {'measurements': measurements}
 
     # use the magic of trig to get distance and turning estimates
     m0, m1 = measurements
-    distance_est = euclidean(m1, measurement)
+
     heading_est0 = bearing(m0, m1)
-    heading_est1 = bearing(m1, measurement)
+    if measurement == (-1, -1):
+        distance_est = OTHER.get('distance', 0)
+        heading_est1 = heading_est0 + OTHER.get('turning', 0)
+        r = robot(m1[0], m1[1], heading_est1, OTHER.get('turning', 0), distance_est)
+        r.move_in_circle()
+        x, y = r.x, r.y
+    else:
+        distance_est = euclidean(m1, measurement)
+        heading_est1 = bearing(m1, measurement)
+        x, y = measurement
     turning_est = heading_est1 - heading_est0
 
     # handle edge case of crossing from quadrant 4 to 1
     if heading_est0 > 3 * (pi / 2) and heading_est1 < pi / 2:
         turning_est += (2 * pi)
 
-    x, y = measurement
-
     # use the magic of bayes to update posterior belief of distance and turning
     distance, distance_var = update(
         OTHER.get('distance', distance_est),
-        OTHER.get('distance_var', 10.0),
+        OTHER.get('distance_var', MEASUREMENT_NOISE),
         distance_est,
-        MEASUREMENT_NOISE)
+        MEASUREMENT_NOISE / 10)
 
     turning, turning_var = update(
         OTHER.get('turning', turning_est),
-        OTHER.get('turning_var', 10.0),
+        OTHER.get('turning_var', MEASUREMENT_NOISE),
         turning_est,
-        MEASUREMENT_NOISE)
-    print 'turning:', turning, turning_var
+        MEASUREMENT_NOISE / 10)
 
     # setup a model robot and move it to make our prediction
     r = robot(x, y, heading_est1, turning, distance)
@@ -100,12 +112,13 @@ def estimate_next_pos(measurement, OTHER=None):
 
     # save current model attributes into OTHER
     OTHER = {
-        'measurements': [m1, measurement],
+        'measurements': [m1, (x, y)],
         'distance': distance,
-        'distance_var': distance_var,
+        'distance_var': distance_var + MEASUREMENT_NOISE,
         'turning': turning,
-        'turning_var': turning_var
+        'turning_var': turning_var + MEASUREMENT_NOISE
     }
+    print OTHER
 
     # return our predicted robot position
     return (r.x, r.y), OTHER
