@@ -41,9 +41,12 @@ class KalmanFilterModel2D(object):
                          [0, 0, 1, 0],
                          [0, 0, 0, 1]])
 
+    def set_state(self, x, y, dx, dy):
+        self.x = matrix([[x], [y], [dx], [dy]])
+
     def predict(self):
         if self.x is None:
-            return
+            return None
         self.x = (self.F * self.x) + self.u
         self.P = self.F * self.P * self.F.transpose() + self.Q
         return self.state

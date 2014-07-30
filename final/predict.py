@@ -18,7 +18,9 @@ def visualize(centroid_data, max_x=800, max_y=600, forcast=0):
     '''Draw hexbug path along with the predicted path'''
     #turtle.setup(max_x, max_y)
     #turtle.setworldcoordinates(0, max_y, max_x, 0)
-    bb = BoundingBox(centroid_data)
+    #bb = BoundingBox(centroid_data)
+    bb = BoundingBox(((165, 84), (684, 420)))
+    print bb
     turtle.setworldcoordinates(bb.min_x, bb.max_y, bb.max_x, bb.min_y)
     window = turtle.Screen()
     window.bgcolor('white')
@@ -28,11 +30,11 @@ def visualize(centroid_data, max_x=800, max_y=600, forcast=0):
     started = False
     model = KalmanFilterModel2D(measurement_noise=0.001)
     #for x, y in normalized_data.data:
-    for x, y in centroid_data[-100:]:
+    for x, y in centroid_data[-50:]:
         model.predict()
         if not started:
             target_robot = setup_turtle('blue', (x, y), 'slowest')
-            prediction_robot = setup_turtle('red', (x, y), 'fast')
+            prediction_robot = setup_turtle('red', (x, y), 'slowest')
             started = True
 
         if (x, y) != (-1, -1):
@@ -42,7 +44,16 @@ def visualize(centroid_data, max_x=800, max_y=600, forcast=0):
         prediction_robot.goto(mx, my)
         print model.state
     for i in range(forcast):
-        x, y, _, _ = model.predict()
+        x, y, dx, dy = model.predict()
+        if (x, y) not in bb:
+            nx, ny = bb.bounce((x, y))
+            if nx != x:
+                x = nx
+                dx = -dx
+            if ny != y:
+                y = ny
+                dy = -dy
+            model.set_state(x, y, dx, dy)
         prediction_robot.goto(x, y)
         print model.state
 
