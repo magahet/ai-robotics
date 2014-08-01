@@ -6,9 +6,77 @@
 
 from math import *
 from matrix import *
+import numpy as np
+from scipy.stats import norm
 
 
 ########################################
+
+class KalmanFilterModel2DCAM(object):
+
+    def __init__(self, dt=1, rp=0.01, sa=0.01):
+        # initial state (location and velocity)
+        self.x = None
+        self.P = 10 * np.eye(6)
+        self.F = np.matrix([[1.0, 0.0, dt, 0.0, (1 / 2.0) * (dt ** 2), 0.0],
+                            [0.0, 1.0, 0.0, dt, 0.0, (1 / 2.0) * (dt ** 2)],
+                            [0.0, 0.0, 1.0, 0.0, dt, 0.0],
+                            [0.0, 0.0, 0.0, 1.0, 0.0, dt],
+                            [0.0, 0.0, 0.0, 0.0, 1.0, 0.0],
+                            [0.0, 0.0, 0.0, 0.0, 0.0, 1.0]])
+        self.H = np.matrix([[1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                            [0.0, 1.0, 0.0, 0.0, 0.0, 0.0]])
+        #ra = 10.0 ** 2   # Noise of Acceleration Measurement
+        #rp = 0.01  # Noise of Position Measurement
+        self.R = np.matrix([[rp, 0.0],
+                            [0.0, rp]])
+        self.I = np.eye(6)
+        #sa = 0.01
+        G = np.matrix([[1 / 2.0 * dt ** 2],
+                       [1 / 2.0 * dt ** 2],
+                       [dt],
+                       [dt],
+                       [1.0],
+                       [1.0]])
+        self.Q = G * G.T * sa ** 2
+
+    def set_state(self, x, y, dx=0, dy=0, d2x=0, d2y=0, reset_p=False):
+        self.x = np.matrix([[x, y, dx, dy, d2x, d2y]]).T
+        if reset_p:
+            self.P = 10 * np.eye(6)
+
+    def predict(self):
+        if self.x is None:
+            return None
+        self.x = self.F * self.x
+        self.P = self.F * self.P * self.F.T + self.Q
+        return self.state
+
+    def update(self, measurement):
+        if self.x is None:
+            self.set_state(measurement[0], measurement[1])
+            return
+        # kalman gain
+        S = self.H * self.P * self.H.T + self.R
+        K = self.P * self.H.T * np.linalg.pinv(S)
+
+        # update measurement
+        Z = np.matrix([measurement])
+        y = Z.T - (self.H * self.x)
+        self.x = self.x + (K * y)
+
+        # update error covariance matrix
+        self.P = (self.I - (K * self.H)) * self.P
+
+    @property
+    def state(self):
+        return tuple(np.array(self.x).reshape(-1,))
+
+    def __str__(self):
+        if self.x is None:
+            return 'None'
+        return str(self.x.value)
+
 
 class KalmanFilterModel2D(object):
 
@@ -73,8 +141,10 @@ class KalmanFilterModel2D(object):
 
 
 if __name__ == '__main__':
-    measurements = [[5., 10.], [6., 8.], [7., 6.], [8., 4.], [9., 2.], [10., 0.]]
-    measurements = [[5., 10.], [6., 8.], [-1, -1], [8., 4.], [-1, -1], [10., 0.]]
+    measurements = [[5., 10.], [6., 8.], [7., 6.], [8., 4.], [9., 2.],
+                    [10., 0.]]
+    measurements = [[5., 10.], [6., 8.], [-1, -1], [8., 4.], [-1, -1],
+                    [10., 0.]]
     initial_xy = [4., 12.]
     forcast = 5
 

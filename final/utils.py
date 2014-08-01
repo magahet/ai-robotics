@@ -100,14 +100,21 @@ class BoundingBox(object):
     def __str__(self):
         return str(self.__repr__())
 
-    def bounce(self, point):
+    def trunc(self, point):
+        x = min(self.max_x, point[0])
+        x = max(self.min_x, x)
+        y = min(self.max_y, point[1])
+        y = max(self.min_y, y)
+        return (int(x), int(y))
+
+    def bounce(self, point, absorbtion_factor=0.1):
         x, y = point
         if point[0] < self.min_x:
-            x = 2 * self.min_x - point[0]
+            x = absorbtion_factor * (self.min_x - point[0]) + self.min_x
         elif point[0] > self.max_x:
-            x = 2 * self.max_x - point[0]
+            x = absorbtion_factor * (self.max_x - point[0]) + self.max_x
         if point[1] < self.min_y:
-            y = 2 * self.min_y - point[1]
+            y = absorbtion_factor * (self.min_y - point[1]) + self.min_y
         elif point[1] > self.max_y:
-            y = 2 * self.max_y - point[1]
+            y = absorbtion_factor * (self.max_y - point[1]) + self.max_y
         return (x, y)
