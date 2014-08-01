@@ -27,7 +27,7 @@ The project consists of the following modules, classes, and functions:
 
 predict.py contains the tracking and prediction function.
 
-    usage: predict.py [-h] [--forcast FORCAST] [--turtle] [--start START]
+    usage: predict.py [-h] [--forecast forecast] [--turtle] [--start START]
                       [--end END] [--length LENGTH]
                       [--measurement_error MEASUREMENT_ERROR]
                       [--process_error PROCESS_ERROR]
@@ -41,7 +41,7 @@ predict.py contains the tracking and prediction function.
 
     optional arguments:
       -h, --help            show this help message and exit
-      --forcast FORCAST, -f FORCAST
+      --forecast forecast, -f forecast
                             number of frames to predict
       --turtle, -t          enable turtle visualization
       --start START, -s START

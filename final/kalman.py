@@ -146,7 +146,7 @@ if __name__ == '__main__':
     measurements = [[5., 10.], [6., 8.], [-1, -1], [8., 4.], [-1, -1],
                     [10., 0.]]
     initial_xy = [4., 12.]
-    forcast = 5
+    forecast = 5
 
     model = KalmanFilterModel2D()
     for m in measurements:
@@ -155,7 +155,7 @@ if __name__ == '__main__':
             model.update(m)
         print 'model:', model
 
-    for i in range(forcast):
+    for i in range(forecast):
         model.predict()
         print 'model:', model
 

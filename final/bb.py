@@ -1,5 +1,5 @@
 class BoundingBox(object):
-    '''Defines constrains of the box'''
+    '''Defines constraints of the box'''
 
     def __init__(self, data):
         self.max_x = max([d[0] for d in data if d[0] > 0])
@@ -28,14 +28,14 @@ class BoundingBox(object):
         y = max(self.min_y, y)
         return (int(x), int(y))
 
-    def bounce(self, point, absorbtion_factor=0.1):
+    def bounce(self, point, absorption_factor=0.1):
         x, y = point
         if point[0] < self.min_x:
-            x = absorbtion_factor * (self.min_x - point[0]) + self.min_x
+            x = absorption_factor * (self.min_x - point[0]) + self.min_x
         elif point[0] > self.max_x:
-            x = absorbtion_factor * (self.max_x - point[0]) + self.max_x
+            x = absorption_factor * (self.max_x - point[0]) + self.max_x
         if point[1] < self.min_y:
-            y = absorbtion_factor * (self.min_y - point[1]) + self.min_y
+            y = absorption_factor * (self.min_y - point[1]) + self.min_y
         elif point[1] > self.max_y:
-            y = absorbtion_factor * (self.max_y - point[1]) + self.max_y
+            y = absorption_factor * (self.max_y - point[1]) + self.max_y
         return (x, y)
