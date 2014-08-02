@@ -1,10 +1,9 @@
 CS 8803: Final Project - Hexbug Tracker - Magahet Mendiola
 =======================================
 
-
 # Overview
 
-This project includes code to track and predict the path of the hexbug by using the provided centroid data files. It performs this task by modeling the state of the hexbug with a Kalman Filter, a constant acceleration model, and a basic physics engine. Details for how to execute the program and details regarding implementation can be found in this guide and within the code documentation.
+This project includes code to track and predict the path of the hexbug by using the provided centroid data files. It performs this task by modeling the state of the hexbug with a Kalman Filter, a constant acceleration model, and a basic physics engine. The project also includes a training tool to optimize the measurement and process noise parameters, as well as the absorption rate used by the model. Details for how to execute the program and details regarding implementation can be found in this guide and within the code documentation.
 
 
 # Quickstart
@@ -17,6 +16,8 @@ To get the final result for the purposes of grading, run the following command:
 This will output the final 63 predicted points on the hexbug's path:
 
     [(609, 326), (604, 333), (598, 341), (593, 349), (587, 357), (580, 364), (574, 372), (568, 379), (561, 387), (554, 394), (547, 402), (540, 409), (532, 417), (525, 418), (517, 417), (509, 415), (501, 414), (492, 413), (484, 412), (475, 411), (466, 409), (457, 408), (448, 407), (438, 406), (428, 405), (419, 403), (408, 402), (398, 401), (388, 400), (377, 399), (366, 398), (355, 397), (344, 395), (333, 394), (321, 393), (309, 392), (297, 391), (285, 390), (273, 389), (260, 388), (248, 387), (235, 386), (222, 384), (208, 383), (195, 382), (181, 381), (167, 380), (168, 379), (171, 378), (173, 377), (176, 376), (178, 375), (181, 374), (183, 373), (186, 372), (189, 371), (191, 370), (194, 369), (197, 368), (199, 367), (202, 366), (205, 365), (208, 365)]
+    
+It performs this task by tracking the hexbug's path from frame 1200 to the end of the data with the physics adapted Kalman filter model. The optimal measurement and process noise parameters, as well as the absorption rate, was determined using the optimization code found in train.py. This tool utilizes simulated anealing to search various combinations of these perameters to find the set which minimizes the L2 error between predicted and observed points.
 
 
 # Project Componants
@@ -60,7 +61,7 @@ Example:
 
     ./predict.py -f 63 -s 100 -l 200 -m 49.97 -p 83.32 -a 0.17 -t testing_video-centroid_data
 
-This will predict 63 frames of the path after tracking the hexbug position from frame 100 for 200 frames. Measurement and process noise parameters are used by the Kalman filter to adjust how much confidence is placed on measurement and prediction updates. The absorption factor is used by the physics engine to adjust how the model reacts when it encounters a wall.
+This will predict 63 frames of the path after tracking the hexbug position for 200 frames starting at frame 100. Measurement and process noise parameters are used by the Kalman filter to adjust how much confidence is placed on measurement and prediction updates. The absorption factor is used by the physics engine to adjust how the model reacts when it encounters a wall.
 
 
 ## kalman.py
@@ -75,3 +76,8 @@ kalman.KalmanFilterModel2DCam provides a Kalman filter with a constant accelerat
 bb.py includes a class to model the environmental constraints imposed by the box containing the hexbug.
 
 bb.BoundingBox provides a model for the walls surrounding the hexbug. It allows for checking if predicted points fall outside the box, and methods to calculate bouncing off or limiting points to within the walls.
+
+
+## train.py
+
+train.py includes functions to run randomized optimization on the input parameters to the tracking and prediction function. It utilizes simmulated annealing to search for the set of parameters that minimizes the L2 error between predicted and observed points after running the track and prediction function on a given subset of the centroid data.
