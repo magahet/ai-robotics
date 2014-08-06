@@ -161,7 +161,7 @@ def track_and_predict(centroid_data, forecast=0, visualize=False, start=0,
         # it will attempt to use model parameters that allow the physics model
         # to overshoot the bounding box.
         predicted_point = bb.trunc(model.state[:2])
-        prediction.append(predicted_point)
+        prediction.append(list(predicted_point))
 
     # Pause after completing the visualization until the turtle window is
     # closed.
@@ -181,11 +181,18 @@ def l2(prediction, actual):
     return sqrt(sq_dist_sum)
 
 
+def save_data(path, data):
+    '''Save prediction points to file'''
+    with open(path, 'w') as _file:
+        _file.write(str(data).replace('],', '],\n'))
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Predict the hexbug path.')
     parser.add_argument('centroid_file', help='file containing hexbug centroid data')
     parser.add_argument('--forecast', '-f', type=int, default=0,
                         help='number of frames to predict')
+    parser.add_argument('--output', '-o', help='file to output predictions')
     parser.add_argument('--turtle', '-t', action='store_true',
                         help='enable turtle visualization')
     parser.add_argument('--start', '-s', type=int, default=0,
@@ -218,6 +225,10 @@ if __name__ == '__main__':
     # Perform tracking and prediction.
     prediction = track_and_predict(centroid_data, args.forecast, args.turtle,
                                    args.start, length, params)
+
+    # Save predictions to a file
+    if args.output:
+        save_data(args.output, prediction)
 
     # Print results.
     print 'Prediction'
